@@ -1,5 +1,9 @@
-﻿using ESourcing.Sourcing.Entities;
+﻿using AutoMapper;
+using ESourcing.Sourcing.Entities;
 using ESourcing.Sourcing.Repositories.Interface;
+using EventBusRabbitMQ.Core;
+using EventBusRabbitMQ.Events;
+using EventBusRabbitMQ.Producer;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -10,11 +14,17 @@ namespace ESourcing.Sourcing.Controllers
     public class AuctionController : ControllerBase
     {
         private readonly IAuctionRepository _auctionRepository;
+        private readonly IBidRepository _bidRepository;
+        private readonly IMapper _mapper;
+        private readonly EventBusRabbitMQProducer _eventBus;
         private readonly ILogger<AuctionController> _logger;
 
-        public AuctionController(IAuctionRepository auctionRepository, ILogger<AuctionController> logger)
+        public AuctionController(IAuctionRepository auctionRepository, ILogger<AuctionController> logger, IBidRepository bidRepository,IMapper mapper,EventBusRabbitMQProducer eventBus)
         {
             _auctionRepository = auctionRepository;
+            _bidRepository = bidRepository;
+            _mapper = mapper;
+            _eventBus = eventBus;
             _logger = logger;
         }
 
@@ -64,6 +74,74 @@ namespace ESourcing.Sourcing.Controllers
             var deleteAuction = await _auctionRepository.Delete(id);
             return Ok(deleteAuction);
         }
+        [HttpPost("CompleteAuction")]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.Accepted)]
+        public async Task<ActionResult> CompleteAuction(string id)
+        {
+            Auction auction = await _auctionRepository.GetAuction(id);
+            if(auction == null)
+            {
+                return NotFound();
+            }
+            if(auction.Status != (int)Status.Active)
+            {
+                _logger.LogError("Auction can not be completed");
+                return BadRequest();
+            }
 
+            Bid bid = await _bidRepository.GetWinnerBid(id);
+
+            if (bid == null)
+            {
+                return NotFound();
+            }
+
+            OrderCreateEvent eventMessage = _mapper.Map<OrderCreateEvent>(bid);
+            eventMessage.Quantity = auction.Quantity;
+
+            auction.Status = (int)Status.Closed;
+            bool updateResponse = await _auctionRepository.Update(auction);
+            if (!updateResponse)
+            {
+                _logger.LogError("Auction can not be updated");
+                return BadRequest();
+            }
+            try
+            {
+                _eventBus.Publish(EventBusConstants.OrderCerateQueue,eventMessage);
+            }
+            catch (Exception ex)
+            {
+
+                 _logger.LogError(ex,"Error Pulishing integration event: {EventId} from {AppName} ",eventMessage.Id,"Sourcing");
+                throw;
+            }
+            return Accepted();
+
+        }
+
+        [HttpPost("TestEvent")]
+        public ActionResult<OrderCreateEvent> TestEvent()
+        {
+            OrderCreateEvent eventMessage = new OrderCreateEvent();
+            eventMessage.AuctionId = "dummy1";
+            eventMessage.ProductId = "dummy_product_1";
+            eventMessage.Price = 10;
+            eventMessage.Quantity = 100;
+            eventMessage.SellerUserName = "test@test.com";
+            try
+            {
+                _eventBus.Publish(EventBusConstants.OrderCerateQueue, eventMessage);
+            }
+            catch (Exception ex)
+            {
+
+                _logger.LogError(ex, "Error Pulishing integration event: {EventId} from {AppName} ", eventMessage.Id, "Sourcing");
+                throw;
+            }
+            return Accepted(eventMessage);
+        }
     }
 }
