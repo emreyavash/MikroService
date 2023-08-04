@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "ESourcing.Order": {
+    "ESourcing.APIGateway": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
@@ -8,7 +8,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5180"
+      "applicationUrl": "https://localhost:7286;http://localhost:5026"
     },
     "IIS Express": {
       "commandName": "IISExpress",
@@ -22,7 +22,8 @@
       "commandName": "Docker",
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/swagger",
-      "publishAllPorts": true
+      "publishAllPorts": true,
+      "useSSL": true
     }
   },
   "$schema": "https://json.schemastore.org/launchsettings.json",
@@ -30,8 +31,8 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:39775",
-      "sslPort": 0
+      "applicationUrl": "http://localhost:47059",
+      "sslPort": 44329
     }
   }
 }

@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "Docker Compose": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "esourcing.apigateway": "StartDebugging",
+        "esourcing.products": "StartDebugging",
+        "esourcing.sourcing": "StartDebugging",
+        "esourcing.order": "StartDebugging"
+      }
+    }
+  }
+}

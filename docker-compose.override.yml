@@ -48,3 +48,28 @@ services:
     ports:
       - "8001:80"
 
+
+  esourcing.apigateway:
+    container_name: esourcingapigateway
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - esourcing.products
+      - esourcing.sourcing
+      - esourcing.order
+    ports:
+      - "5000:80"
+    volumes:
+      - ${Home}/Microsoft/UserSecrets:/root/.microsoft/usersecrets
+      - ${Home}/ASP.NET/Https:/root/.aspnet/https
+
+  esourcing.order:
+    container_name: esourcingorder
+    restart: on-failure
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "8002:80"
+    volumes:
+      - ${Home}/Microsoft/UserSecrets:/root/.microsoft/usersecrets
+      - ${Home}/ASP.NET/Https:/root/.aspnet/https
